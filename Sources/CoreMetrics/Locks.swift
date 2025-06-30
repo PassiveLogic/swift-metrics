@@ -26,9 +26,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if canImport(WASILibc)
-// No locking on WASILibc
-#elseif canImport(Darwin)
+#if canImport(Darwin)
 import Darwin
 #elseif os(Windows)
 import WinSDK
@@ -38,6 +36,11 @@ import Glibc
 import Android
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(WASILibc)
+import WASILibc
+#if canImport(wasi_pthread)
+import wasi_pthread
+#endif
 #else
 #error("Unsupported runtime")
 #endif
@@ -142,9 +145,7 @@ extension Lock: @unchecked Sendable {}
 /// one used by NIO. On Windows, the lock is based on the substantially similar
 /// `SRWLOCK` type.
 internal final class ReadWriteLock {
-    #if canImport(WASILibc)
-    // WASILibc is single threaded, provides no locks
-    #elseif os(Windows)
+    #if os(Windows)
     fileprivate let rwlock: UnsafeMutablePointer<SRWLOCK> =
         UnsafeMutablePointer.allocate(capacity: 1)
     fileprivate var shared: Bool = true
@@ -155,9 +156,7 @@ internal final class ReadWriteLock {
 
     /// Create a new lock.
     public init() {
-        #if canImport(WASILibc)
-        // WASILibc is single threaded, provides no locks
-        #elseif os(Windows)
+        #if os(Windows)
         InitializeSRWLock(self.rwlock)
         #else
         let err = pthread_rwlock_init(self.rwlock, nil)
@@ -166,9 +165,7 @@ internal final class ReadWriteLock {
     }
 
     deinit {
-        #if canImport(WASILibc)
-        // WASILibc is single threaded, provides no locks
-        #elseif os(Windows)
+        #if os(Windows)
         // SRWLOCK does not need to be free'd
         #else
         let err = pthread_rwlock_destroy(self.rwlock)
@@ -182,9 +179,7 @@ internal final class ReadWriteLock {
     /// Whenever possible, consider using `withReaderLock` instead of this
     /// method and `unlock`, to simplify lock handling.
     public func lockRead() {
-        #if canImport(WASILibc)
-        // WASILibc is single threaded, provides no locks
-        #elseif os(Windows)
+        #if os(Windows)
         AcquireSRWLockShared(self.rwlock)
         self.shared = true
         #else
@@ -198,9 +193,7 @@ internal final class ReadWriteLock {
     /// Whenever possible, consider using `withWriterLock` instead of this
     /// method and `unlock`, to simplify lock handling.
     public func lockWrite() {
-        #if canImport(WASILibc)
-        // WASILibc is single threaded, provides no locks
-        #elseif os(Windows)
+        #if os(Windows)
         AcquireSRWLockExclusive(self.rwlock)
         self.shared = false
         #else
@@ -215,9 +208,7 @@ internal final class ReadWriteLock {
     /// instead of this method and `lockRead` and `lockWrite`, to simplify lock
     /// handling.
     public func unlock() {
-        #if canImport(WASILibc)
-        // WASILibc is single threaded, provides no locks
-        #elseif os(Windows)
+        #if os(Windows)
         if self.shared {
             ReleaseSRWLockShared(self.rwlock)
         } else {
