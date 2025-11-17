@@ -14,16 +14,16 @@
 
 /// # About DispatchAsync
 ///
-/// DispatchAsync is a temporary experimental repository aimed at implementing missing Dispatch support in the SwiftWasm toolchain.
-/// Currently, [SwiftWasm doesn't include Dispatch](https://book.swiftwasm.org/getting-started/porting.html#swift-foundation-and-dispatch)
-/// But, SwiftWasm does support Swift Concurrency. DispatchAsync implements a number of common Dispatch API's using Swift Concurrency
+/// DispatchAsync is a temporary experimental repository aimed at implementing missing Dispatch support in the Swift for WebAssembly SDK.
+/// Currently, [Swift for WebAssembly doesn't include Dispatch](https://book.swiftwasm.org/getting-started/porting.html#swift-foundation-and-dispatch)
+/// But, Swift for WebAssembly does support Swift Concurrency. DispatchAsync implements a number of common Dispatch API's using Swift Concurrency
 /// under the hood.
 ///
 /// The code in this folder is copy-paste-adapted from [swift-dispatch-async](https://github.com/PassiveLogic/swift-dispatch-async)
 ///
 /// Notes
-/// - Copying here avoids adding a temporary new dependency on a repo that will eventually move into the Swift Wasm toolchain itself.
-/// - This is a temporary measure to enable wasm compilation until swift-dispatch-async is adopted into the SwiftWasm toolchain.
+/// - Copying here avoids adding a temporary new dependency on a repo that will eventually move into the Swift for WebAssembly SDK itself.
+/// - This is a temporary measure to enable wasm compilation until swift-dispatch-async is adopted into the Swift for WebAssembly SDK.
 /// - The code is completely elided except for wasm compilation targets.
 /// - Only the minimum code needed for compilation is copied.
 
