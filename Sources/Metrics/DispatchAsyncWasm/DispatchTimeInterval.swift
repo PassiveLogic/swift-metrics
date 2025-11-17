@@ -29,6 +29,10 @@
 
 #if os(WASI) && !canImport(Dispatch)
 
+private let kNanosecondsPerSecond: UInt64 = 1_000_000_000
+private let kNanosecondsPerMillisecond: UInt64 = 1_000_000
+private let kNanoSecondsPerMicrosecond: UInt64 = 1_000
+
 /// NOTE: This is an excerpt from libDispatch, see
 /// https://github.com/swiftlang/swift-corelibs-libdispatch/blob/main/src/swift/Time.swift#L168
 ///
@@ -84,9 +88,5 @@ public enum DispatchTimeInterval: Equatable, Sendable {
         return result
     }
 }
-
-package let kNanosecondsPerSecond: UInt64 = 1_000_000_000
-package let kNanosecondsPerMillisecond: UInt64 = 1_000_000
-package let kNanoSecondsPerMicrosecond: UInt64 = 1_000
 
 #endif // #if os(WASI) && !canImport(Dispatch)

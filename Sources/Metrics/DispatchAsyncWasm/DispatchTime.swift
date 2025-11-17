@@ -14,8 +14,8 @@
 
 /// # About DispatchAsync
 ///
-/// DispatchAsync is a temporary experimental repository aimed at implementing missing Dispatch support in the SwiftWasm toolchain.
-/// Currently, [SwiftWasm doesn't include Dispatch](https://book.swiftwasm.org/getting-started/porting.html#swift-foundation-and-dispatch)
+/// DispatchAsync is a temporary experimental repository aimed at implementing missing Dispatch support in the Swift for WebAssembly SDK.
+/// Currently, [Swift for WebAsssembly doesn't include Dispatch](https://book.swiftwasm.org/getting-started/porting.html#swift-foundation-and-dispatch)
 /// But, SwiftWasm does support Swift Concurrency. DispatchAsync implements a number of common Dispatch API's using Swift Concurrency
 /// under the hood.
 ///
@@ -24,41 +24,44 @@
 /// Notes
 /// - Copying here avoids adding a temporary new dependency on a repo that will eventually move into the Swift Wasm toolchain itself.
 /// - This is a temporary measure to enable wasm compilation until swift-dispatch-async is adopted into the SwiftWasm toolchain.
-/// - The code is completely elided except for wasm compilation targets.
-/// - Only the minimum code needed for compilation is copied.
-
-import Synchronization
-import os
-
-typealias Primitive = os_unfair_lock
 
 #if os(WASI) && !canImport(Dispatch)
 
-@available(macOS 13, *)
-public typealias DispatchTime = ContinuousClock.Instant
+/// Drop-in replacement for ``Dispatch.DispatchTime``, implemented using pure Swift.
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+public struct DispatchTime {
+    private let instant: ContinuousClock.Instant
 
-/// The very first time someone tries to reference a `uptimeNanoseconds` or a similar
-/// function that references a beginning point, this variable will be initialized as a beginning
-/// reference point. This guarantees that all calls to `uptimeNanoseconds` or similar
-/// will be 0 or greater.
-///
-/// By design, it is not possible to related `ContinuousClock.Instant` to
-/// `ProcessInfo.processInfo.systemUptime`, and even if one devised such
-/// a mechanism, it would open the door for fingerprinting. It's best to let the concept
-/// of uptime be relative to previous uptime calls.
-@available(macOS 13, *)
-private let uptimeBeginning: DispatchTime = DispatchTime.now()
+    /// The very first time someone intializes a DispatchTime instance, we
+    /// reference this static let, causing it to be initialized.
+    ///
+    /// This is the closest we can get to snapshotting the start time of the running
+    /// executable, without using OS-specific calls. We want
+    /// to avoid OS-specific calls to maximize portability.
+    ///
+    /// To keep this robust, we initialize `self.durationSinceBeginning`
+    /// to this value using a default value, which is guaranteed to run before any
+    /// initializers run. This guarantees that uptimeBeginning will be the very
+    /// first
+    @available(macOS 13, *)
+    private static let uptimeBeginning: ContinuousClock.Instant = ContinuousClock.Instant.now
 
-@available(macOS 13, *)
-extension DispatchTime {
-    public static func now() -> DispatchTime {
-        now
+    /// See documentation for ``uptimeBeginning``. We intentionally
+    /// use this to guarantee a capture of `now` to `uptimeBeginning` BEFORE
+    /// any DispatchTime instances are initialized.
+    private let durationSinceUptime = uptimeBeginning.duration(to: ContinuousClock.Instant.now)
+
+    public init() {
+        self.instant = ContinuousClock.Instant.now
+    }
+
+    public static func now() -> Self {
+        DispatchTime()
     }
 
     public var uptimeNanoseconds: UInt64 {
-        let beginning = uptimeBeginning
-        let rightNow = DispatchTime.now()
-        let uptimeDuration: Int64 = beginning.duration(to: rightNow).nanosecondsClamped
+        let beginning = DispatchTime.uptimeBeginning
+        let uptimeDuration: Int64 = beginning.duration(to: self.instant).nanosecondsClamped
         guard uptimeDuration >= 0 else {
             assertionFailure("It shouldn't be possible to get a negative duration since uptimeBeginning.")
             return 0
@@ -67,7 +70,10 @@ extension DispatchTime {
     }
 }
 
-// NOTE: The following was copied from swift-nio/Source/NIOCore/TimeAmount+Duration on June 27, 2025
+// NOTE: The following was copied from swift-nio/Source/NIOCore/TimeAmount+Duration on June 27, 2025.
+//
+// See https://github.com/apple/swift-nio/blob/83bc5b58440373a7678b56fa0d9cc22ca55297ee/Sources/NIOCore/TimeAmount%2BDuration.swift
+//
 // It was copied rather than brought via dependencies to avoid introducing
 // a dependency on swift-nio for such a small piece of code.
 //
